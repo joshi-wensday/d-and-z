@@ -1,0 +1,16 @@
+{
+    "habits": [
+      { "id": 1, "category": "Life", "name": "Woman approached", "value": 0, "fpPerUnit": 2 },
+      { "id": 2, "category": "Life", "name": "Woman NOT approached", "value": 0, "fpPerUnit": -1 },
+      { "id": 3, "category": "Dreams", "name": "Dream work sessions", "value": 0, "fpPerUnit": 1 },
+      { "id": 4, "category": "Space", "name": "Meditation (minutes)", "value": 0, "fpPerUnit": 0.2 },
+      { "id": 5, "category": "Vita", "name": "Strength training reps", "value": 0, "fpPerUnit": 1 }
+    ],
+    "conversionRules": [
+      { "id": 1, "category": "Life", "metric": "Woman approached", "conversionRule": "1 per (+2FP), 2 per (+1FP)", "example": "1/per(+2FP),2/per (+1FP) = total of +4FP" },
+      { "id": 2, "category": "Life", "metric": "Woman NOT approached", "conversionRule": "-1 per", "example": "3 = -3FP" },
+      { "id": 3, "category": "Dreams", "metric": "Dream work sessions", "conversionRule": "1 per 25 minutes (1 triangle)", "example": "8 triangles = 8FP" },
+      { "id": 4, "category": "Space", "metric": "Meditation", "conversionRule": "1FP per 5 minutes", "example": "14 minutes = 2FP (rounded down)" },
+      { "id": 5, "category": "Vita", "metric": "Difficult strength training reps", "conversionRule": "1FP per rep", "example": "7 reps = 7FP" }
+    ]
+  }

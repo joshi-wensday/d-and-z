@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTable, useFilters, useGlobalFilter, useSortBy } from 'react-table';
-import { Input, Table } from '@/components/ui/table';
 
 const FPConversionTable = () => {
   const [data, setData] = useState([]);
@@ -15,7 +14,7 @@ const FPConversionTable = () => {
     ]);
   }, []);
 
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [
       { Header: 'Category', accessor: 'category' },
       { Header: 'Metric', accessor: 'metric' },
@@ -43,20 +42,30 @@ const FPConversionTable = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Flame Point Conversion Table</h2>
-      <Input
+    <div style={{ padding: '1rem' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Flame Point Conversion Table</h2>
+      <input
         value={filterInput}
         onChange={handleFilterChange}
         placeholder="Search table..."
-        className="mb-4 p-2 border rounded"
+        style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', width: '100%' }}
       />
-      <Table {...getTableProps()}>
+      <table {...getTableProps()} style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           {headerGroups.map(headerGroup => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map(column => (
-                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
+                <th 
+                  {...column.getHeaderProps(column.getSortByToggleProps())}
+                  style={{ 
+                    borderBottom: 'solid 3px #ddd',
+                    background: '#f0f0f0',
+                    color: 'black',
+                    fontWeight: 'bold',
+                    padding: '0.5rem',
+                    textAlign: 'left'
+                  }}
+                >
                   {column.render('Header')}
                   <span>
                     {column.isSorted ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}
@@ -72,13 +81,21 @@ const FPConversionTable = () => {
             return (
               <tr {...row.getRowProps()}>
                 {row.cells.map(cell => (
-                  <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                  <td 
+                    {...cell.getCellProps()}
+                    style={{
+                      padding: '0.5rem',
+                      border: 'solid 1px #ddd'
+                    }}
+                  >
+                    {cell.render('Cell')}
+                  </td>
                 ))}
               </tr>
             );
           })}
         </tbody>
-      </Table>
+      </table>
     </div>
   );
 };
