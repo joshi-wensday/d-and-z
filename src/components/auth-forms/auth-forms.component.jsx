@@ -1,8 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/auth.context';
 import { LifeSystemContext } from '../../context/life-system.context';
-import { auth, createUserProfileDocument } from '../../utils/firebase/firebase.utils';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import './auth-forms.styles.scss';
 
@@ -12,8 +10,8 @@ const AuthForms = () => {
   const [displayName, setDisplayName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const { user } = useContext(AuthContext);
-  const { isDemo, setIsDemo } = useContext(LifeSystemContext);
+  const { signIn, signUp, signInWithGoogle, signInWithApple } = useContext(AuthContext);
+  const { isDemo, enterDemoMode } = useContext(LifeSystemContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
@@ -21,31 +19,46 @@ const AuthForms = () => {
     
     try {
       if (isSignUp) {
-        const { user } = await createUserWithEmailAndPassword(auth, email, password);
-        await createUserProfileDocument(user, { displayName });
+        await signUp(email, password, displayName);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signIn(email, password);
       }
       
       setEmail('');
       setPassword('');
       setDisplayName('');
+      navigate('/');
     } catch (error) {
       console.error('Error during authentication:', error);
+      // Here you might want to set an error state and display it to the user
     }
   };
 
   const toggleForm = () => setIsSignUp(!isSignUp);
 
-  const enterDemoMode = () => {
-    setIsDemo(true);
+  const handleEnterDemoMode = async () => {
+    console.log('Entering demo mode');
+    enterDemoMode();
     navigate('/');
   };
 
-  if (user || isDemo) {
-    navigate('/');
-    return null;
-  }
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      navigate('/');
+    } catch (error) {
+      console.error('Error during Google sign in:', error);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      await signInWithApple();
+      navigate('/');
+    } catch (error) {
+      console.error('Error during Apple sign in:', error);
+    }
+  };
 
   return (
     <div className="auth-forms">
@@ -79,7 +92,9 @@ const AuthForms = () => {
       <button onClick={toggleForm}>
         {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
       </button>
-      <button onClick={enterDemoMode}>Enter Demo Mode</button>
+      <button onClick={handleGoogleSignIn}>Sign in with Google</button>
+      <button onClick={handleAppleSignIn}>Sign in with Apple</button>
+      <button onClick={handleEnterDemoMode}>Enter Demo Mode</button>
     </div>
   );
 };

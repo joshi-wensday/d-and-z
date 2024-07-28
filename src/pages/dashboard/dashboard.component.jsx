@@ -7,24 +7,31 @@ import FlamePointsChart from '../../components/flame-points-chart/flame-points-c
 import './dashboard.styles.scss';
 
 const Dashboard = () => {
-  const { habits } = useContext(LifeSystemContext);
+  const { calculateFlamePoints, isLoading, currentLog, currentDate } = useContext(LifeSystemContext);
 
-  const totalFP = habits.reduce((sum, habit) => sum + (habit.value * habit.fpPerUnit), 0);
-  const categorySums = habits.reduce((sums, habit) => {
-    sums[habit.category] = (sums[habit.category] || 0) + (habit.value * habit.fpPerUnit);
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  const totalFP = currentLog ? calculateFlamePoints(currentLog.metrics) : 0;
+
+  const categorySums = currentLog ? currentLog.metrics.reduce((sums, metric) => {
+    if (metric.category) {
+      sums[metric.category] = (sums[metric.category] || 0) + calculateFlamePoints([metric]);
+    }
     return sums;
-  }, {});
+  }, {}) : {};
 
   return (
     <div className="dashboard">
       <h1>Life System Dashboard</h1>
       <div className="summary">
         <h2>Today's Summary</h2>
-        <p>Total Flame Points: {totalFP}</p>
+        <p>Total Flame Points: {totalFP.toFixed(2)}</p>
         <h3>Breakdown by Category:</h3>
         <ul>
           {Object.entries(categorySums).map(([category, sum]) => (
-            <li key={category}>{category}: {sum} FP</li>
+            <li key={category}>{category}: {sum.toFixed(2)} FP</li>
           ))}
         </ul>
       </div>

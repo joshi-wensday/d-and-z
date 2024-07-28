@@ -1,219 +1,227 @@
 // src/context/life-system.context.jsx
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { db } from '../utils/firebase/firebase.utils';
-import { collection, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { AuthContext } from './auth.context';
+import {
+  getLifeSystemData,
+  updateLifeSystemData,
+  getDailyLogs,
+  updateDailyLogs,
+  addUserDailyLog,
+  addUserMetric,
+  addDoc,
+  collection,
+  db,
+  auth
+} from '../utils/firebase/firebase.utils';
 
 export const LifeSystemContext = createContext();
 
-const sampleConversionRules = [
-    { id: 1, category: 'Life', metric: 'Woman approached', conversionRule: '2FP per approach', fpPerUnit: 2 },
-    { id: 2, category: 'Life', metric: 'Friends seen', conversionRule: '1FP per friend', fpPerUnit: 1 },
-    { id: 3, category: 'Dreams', metric: 'Dream work sessions', conversionRule: '1FP per 25 minutes', fpPerUnit: 1 },
-    { id: 4, category: 'Space', metric: 'Meditation', conversionRule: '0.2FP per minute', fpPerUnit: 0.2 },
-    { id: 5, category: 'Vita', metric: 'Strength training reps', conversionRule: '1FP per rep', fpPerUnit: 1 },
-  ];
-  
-const sampleHabits = [
-    { id: 1, category: 'Life', name: 'Woman approached', value: 0 },
-    { id: 2, category: 'Life', name: 'Friends seen', value: 0 },
-    { id: 3, category: 'Dreams', name: 'Dream work sessions', value: 0 },
-    { id: 4, category: 'Space', name: 'Meditation', value: 0 },
-    { id: 5, category: 'Vita', name: 'Strength training reps', value: 0 },
-  ];
-
-const sampleDailyLogs = [
-    {
-        date: '2024-07-21',
-        'Woman approached': 2,
-        'Friends seen': 3,
-        'Dream work sessions': 1,
-        'Meditation (minutes)': 15,
-        'Strength training reps': 20,
-        'Creative projects worked on': 1,
-        'Hours spent on hobbies': 2
-    },
-    {
-        date: '2024-07-22',
-        'Woman approached': 1,
-        'Friends seen': 2,
-        'Dream work sessions': 2,
-        'Meditation (minutes)': 20,
-        'Strength training reps': 25,
-        'Creative projects worked on': 0,
-        'Hours spent on hobbies': 1
-    },
-    {
-        date: '2024-07-23',
-        'Woman approached': 3,
-        'Friends seen': 1,
-        'Dream work sessions': 1,
-        'Meditation (minutes)': 10,
-        'Strength training reps': 15,
-        'Creative projects worked on': 1,
-        'Hours spent on hobbies': 3
-    },
-    {
-        date: '2024-07-24',
-        'Woman approached': 0,
-        'Friends seen': 4,
-        'Dream work sessions': 3,
-        'Meditation (minutes)': 30,
-        'Strength training reps': 30,
-        'Creative projects worked on': 2,
-        'Hours spent on hobbies': 2
-    },
-    {
-        date: '2024-07-25',
-        'Woman approached': 2,
-        'Friends seen': 2,
-        'Dream work sessions': 2,
-        'Meditation (minutes)': 25,
-        'Strength training reps': 20,
-        'Creative projects worked on': 1,
-        'Hours spent on hobbies': 1
-    },
-    {
-        date: '2024-07-26',
-        'Woman approached': 1,
-        'Friends seen': 3,
-        'Dream work sessions': 1,
-        'Meditation (minutes)': 15,
-        'Strength training reps': 25,
-        'Creative projects worked on': 0,
-        'Hours spent on hobbies': 2
-    },
-    {
-        date: '2024-07-27',
-        'Woman approached': 2,
-        'Friends seen': 2,
-        'Dream work sessions': 2,
-        'Meditation (minutes)': 20,
-        'Strength training reps': 20,
-        'Creative projects worked on': 1,
-        'Hours spent on hobbies': 3
-    }
-    ];
-
 export const LifeSystemProvider = ({ children }) => {
-    const [habits, setHabits] = useState(sampleHabits);
-    const [dailyLogs, setDailyLogs] = useState(sampleDailyLogs);
-    const [conversionRules, setConversionRules] = useState(sampleConversionRules);
-    const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-    const { user } = useContext(AuthContext);
-    const [isDemo, setIsDemo] = useState(!user);
-  
-    useEffect(() => {
-      if (user) {
-        // Fetch real data from Firestore
-        const fetchData = async () => {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-  
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setHabits(userData.habits || sampleHabits);
-            setDailyLogs(userData.dailyLogs || sampleDailyLogs);
-            setConversionRules(userData.conversionRules || []);
-          } else {
-            // If it's a new user, initialize with sample data
-            await setDoc(userDocRef, { habits: sampleHabits, dailyLogs: sampleDailyLogs, conversionRules: [] });
-            setHabits(sampleHabits);
-            setDailyLogs(sampleDailyLogs);
+  const [lifeSystemData, setLifeSystemData] = useState([]);
+  const [dailyLogs, setDailyLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currentLog, setCurrentLog] = useState(null);
+
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedLifeSystemData = await getLifeSystemData(isDemo);
+        setLifeSystemData(fetchedLifeSystemData);
+
+        const fetchedDailyLogs = await getDailyLogs(isDemo);
+        setDailyLogs(fetchedDailyLogs);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user || isDemo) {
+      fetchData();
+    }
+  }, [user, isDemo]);
+
+  useEffect(() => {
+    const log = dailyLogs.find(log => {
+      const logDate = log.date instanceof Date ? log.date : log.date.toDate();
+      return logDate.toDateString() === new Date(currentDate).toDateString();
+    });
+    if (log) {
+      setCurrentLog(log);
+    } else {
+      const newLog = {
+        date: new Date(currentDate),
+        metrics: lifeSystemData.map(metric => ({ ...metric, value: 0, attributeValues: {} }))
+      };
+      setCurrentLog(newLog);
+      setDailyLogs(prevLogs => [...prevLogs, newLog]);
+    }
+  }, [currentDate, dailyLogs, lifeSystemData]);
+
+  const updateMetric = async (id, newValue, attributes = {}) => {
+    const metricsData = await getLifeSystemData(isDemo);
+    let updatedLog;
+
+    if (currentLog) {
+      updatedLog = {
+        ...currentLog,
+        metrics: currentLog.metrics.map(metric => {
+          if (metric.id === id) {
+            const fullMetric = metricsData.find(m => m.id === id);
+            return {
+              ...fullMetric,
+              value: parseInt(newValue) || 0,
+              attributeValues: { ...metric.attributeValues, ...attributes }
+            };
           }
-        };
-  
-        fetchData();
-        setIsDemo(false);
-      } else {
-        // Use sample data for demo mode
-        setHabits(sampleHabits);
-        setDailyLogs(sampleDailyLogs);
-        setIsDemo(true);
-      }
-    }, [user]);
+          return metric;
+        })
+      };
+    } else {
+      updatedLog = {
+        date: new Date(currentDate),
+        metrics: metricsData.map(metric => {
+          if (metric.id === id) {
+            return {
+              ...metric,
+              value: parseInt(newValue) || 0,
+              attributeValues: attributes
+            };
+          }
+          return {
+            ...metric,
+            value: 0,
+            attributeValues: {}
+          };
+        })
+      };
+    }
 
-    useEffect(() => {
-        // Link habits with conversion rules
-        const linkedHabits = habits.map(habit => {
-          const rule = conversionRules.find(r => r.metric === habit.name);
-          return { ...habit, fpPerUnit: rule ? rule.fpPerUnit : 0 };
+    await updateDailyLogs([updatedLog], isDemo);
+    setDailyLogs(prevLogs => {
+      const newLogs = currentLog
+        ? prevLogs.map(log => log.id === updatedLog.id ? updatedLog : log)
+        : [...prevLogs, updatedLog];
+      return newLogs;
+    });
+    setCurrentLog(updatedLog);
+  };
+
+  const addDailyLog = async (logData) => {
+    const metricsData = await getLifeSystemData(isDemo);
+    const updatedMetrics = logData.metrics.map(metric => {
+      const fullMetric = metricsData.find(m => m.id === metric.id);
+      return {
+        ...fullMetric,
+        value: metric.value,
+        attributeValues: metric.attributeValues || {}
+      };
+    });
+    const newLog = {
+      ...logData,
+      metrics: updatedMetrics
+    };
+    const addedLog = await addUserDailyLog(isDemo ? 'demoData' : user.uid, newLog);
+    setDailyLogs([...dailyLogs, addedLog]);
+  };
+
+  const calculateFlamePoints = (metrics) => {
+    return metrics.reduce((total, metric) => {
+      let points = 0;
+      if (metric.tiers) {
+        let remainingValue = metric.value;
+        for (const tier of metric.tiers) {
+          const valueInTier = Math.min(remainingValue, tier.limit);
+          points += valueInTier * tier.fpPerUnit;
+          remainingValue -= valueInTier;
+          if (remainingValue <= 0) break;
+        }
+      } else if (metric.fpPerUnit) {
+        points = metric.value * metric.fpPerUnit;
+      }
+      if (metric.attributes) {
+        metric.attributes.forEach(attr => {
+          points += (metric.attributeValues[attr.name] || 0) * attr.modifier;
         });
-        setHabits(linkedHabits);
-      }, [conversionRules]);
-  
-    const updateHabit = (id, newValue) => {
-      const updatedHabits = habits.map(habit => 
-        habit.id === id ? { ...habit, value: parseInt(newValue) || 0 } : habit
-      );
-      setHabits(updatedHabits);
-
-      // Update the daily log for the current date
-      const updatedDailyLogs = dailyLogs.map(log => {
-        if (log.date === currentDate) {
-          const updatedLog = { ...log };
-          updatedHabits.forEach(habit => {
-            updatedLog[habit.name] = habit.value;
-          });
-          return updatedLog;
-        }
-        return log;
-      });
-
-      setDailyLogs(updatedDailyLogs);
-
-      if (user && !isDemo) {
-        // Update Firestore here
       }
-    };
+      return total + points;
+    }, 0);
+  };
 
-    const updateConversionRule = (id, updatedRule) => {
-        const updatedRules = conversionRules.map(rule => 
-          rule.id === id ? { ...rule, ...updatedRule } : rule
-        );
-        setConversionRules(updatedRules);
-    
-        if (user && !isDemo) {
-          // Update Firestore here (when we implement it)
-        }
-      };
+  const setDate = (date) => {
+    setCurrentDate(date);
+  };
 
-    const setDate = (date) => {
-      setCurrentDate(date);
-      const currentLog = dailyLogs.find(log => log.date === date);
+  const enterDemoMode = () => {
+    setIsDemo(true);
+  };
+
+  const exitDemoMode = () => {
+    setIsDemo(false);
+  };
+
+  const addNewMetric = async (newMetric) => {
+    try {
+      const userId = isDemo ? 'demoData' : auth.currentUser?.uid;
+      if (!userId) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Add default value of 0 to the new metric
+      const metricWithDefaultValue = { ...newMetric, value: 0 };
+      
+      const addedMetric = await addUserMetric(userId, metricWithDefaultValue);
+      
+      // Update the local state
+      setLifeSystemData(prevData => [...prevData, { id: addedMetric.id, ...metricWithDefaultValue }]);
+
+      // Add the new metric to the current daily log
       if (currentLog) {
-        const updatedHabits = habits.map(habit => ({
-          ...habit,
-          value: currentLog[habit.name] || 0
-        }));
-        setHabits(updatedHabits);
-      } else {
-        setHabits(habits.map(habit => ({ ...habit, value: 0 })));
+        const updatedLog = {
+          ...currentLog,
+          metrics: [...currentLog.metrics, { id: addedMetric.id, ...metricWithDefaultValue }]
+        };
+        await updateDailyLogs([updatedLog], isDemo);
+        setCurrentLog(updatedLog);
+        setDailyLogs(prevLogs => prevLogs.map(log => log.id === updatedLog.id ? updatedLog : log));
       }
-    };
+    } catch (error) {
+      console.error("Error adding new metric:", error);
+      throw error;
+    }
+  };
 
-    const calculateFlamePoints = (log) => {
-        return habits.reduce((total, habit) => {
-          const value = log[habit.name] || 0;
-          return total + value * habit.fpPerUnit;
-        }, 0);
-      };
-    
-      return (
-        <LifeSystemContext.Provider value={{ 
-          habits, 
-          updateHabit, 
-          dailyLogs, 
-          conversionRules,
-          updateConversionRule, 
-          isDemo, 
-          setIsDemo, 
-          currentDate, 
-          setDate: setCurrentDate,
-          calculateFlamePoints
-        }}>
-          {children}
-        </LifeSystemContext.Provider>
-      );
-    };
+  const contextValue = {
+    lifeSystemData,
+    setLifeSystemData,
+    dailyLogs,
+    setDailyLogs,
+    isLoading,
+    isDemo,
+    setIsDemo,
+    currentDate,
+    currentLog,
+    updateMetric,
+    addDailyLog,
+    calculateFlamePoints,
+    setDate,
+    enterDemoMode,
+    exitDemoMode,
+    addNewMetric
+  };
+
+  return (
+    <LifeSystemContext.Provider
+      value={contextValue}
+    >
+      {children}
+    </LifeSystemContext.Provider>
+  );
+};
